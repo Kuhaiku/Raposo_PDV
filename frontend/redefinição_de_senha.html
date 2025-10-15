@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Redefinir Senha</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <main class="flex-1 px-4 py-6 min-h-screen flex flex-col justify-center">
+        <div class="w-full max-w-md mx-auto">
+            <h1 class="text-2xl font-bold text-center">Redefinir Senha</h1>
+            <p class="text-gray-600 pb-6 pt-1 text-center">Digite o código recebido por e-mail e sua nova senha.</p>
+            <form id="form-redefinir" class="space-y-6">
+                <div>
+                    <p class="text-sm font-medium pb-2 text-center">Código de Verificação</p>
+                    <div id="code-inputs" class="flex justify-center gap-2">
+                        <input class="code-input" maxlength="1" type="text" required />
+                        <input class="code-input" maxlength="1" type="text" required />
+                        <input class="code-input" maxlength="1" type="text" required />
+                        <input class="code-input" maxlength="1" type="text" required />
+                        <input class="code-input" maxlength="1" type="text" required />
+                        <input class="code-input" maxlength="1" type="text" required />
+                    </div>
+                </div>
+                <div>
+                    <label class="text-sm font-medium pb-2" for="nova-senha">Nova Senha</label>
+                    <div class="relative"><input id="nova-senha" class="w-full h-14 p-4 rounded-lg border border-gray-300" placeholder="Crie uma nova senha" type="password" required /></div>
+                </div>
+                <button type="submit" class="w-full h-14 rounded-lg bg-blue-600 text-white font-bold">Redefinir</button>
+            </form>
+            <div id="feedback-message" class="text-center mt-4 h-5"></div>
+            <a class="block mt-6 text-blue-600 text-sm font-medium hover:underline text-center" href="/login.html">Voltar para o Login</a>
+        </div>
+    </main>
+    <style>.code-input { width: 3rem; height: 3.5rem; text-align: center; font-size: 1.25rem; border: 1px solid #D1D5DB; border-radius: 0.5rem; }</style>
+    <script src="/js/redefinir-senha.js"></script>
+</body>
+</html>

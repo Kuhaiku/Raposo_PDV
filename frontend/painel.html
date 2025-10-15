@@ -1,66 +1,190 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <link rel="stylesheet" href="css/global.css">
-    <link rel="stylesheet" href="css/painel.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-</head>
-<body>
-    <div class="painel-container">
-        <aside class="sidebar">
-             <div class="sidebar-header"> <h2>Raposo - PDV</h2> </div>
-            <nav class="sidebar-nav">
-                <ul>
-                    <li class="active"><a href="painel.html">Dashboard</a></li>
-                    <li><a href="nova-venda.html">Nova Venda</a></li>
-                    <li><a href="historico.html">Histórico</a></li>
-                    <li><a href="clientes.html">Clientes</a></li>
-                    <li><a href="produtos.html">Produtos</a></li>
-                    <li><a href="caixa.html">Caixa</a></li>
-                    <li><a href="perfil-vendedor.html">Perfil Vendedor</a></li>
-            
-                </ul>
-            </nav>
-            <div class="sidebar-footer"> <button id="logout-btn" class="btn-logout">Sair</button></a></div>
-        </aside>
-        <main class="main-content">
-            <header class="main-header">
-                <h1>Dashboard</h1>
-            </header>
-            
-            <section class="metricas">
-                <div class="card">
-                    <h3>Faturamento do Mês</h3>
-                    <p id="faturamento-mes">R$ 0,00</p>
-                </div>
-                <div class="card">
-                    <h3>Novos Clientes (30 dias)</h3>
-                    <p id="novos-clientes">0</p>
-                </div>
-            </section>
+<html class="light" lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Painel do Vendedor</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        theme: { extend: { colors: { primary: "#2196F3", error: "#DC3545" } } },
+      };
+    </script>
+  </head>
+  <body class="bg-gray-100 font-sans">
+    <div class="relative min-h-screen w-full flex-col">
+      <header
+        class="flex items-center bg-gray-100 p-4 pb-2 justify-between sticky top-0 z-10"
+      >
+        <div class="size-12"></div>
+        <h2 id="welcome-message" class="text-slate-900 text-lg font-bold">
+          Olá!
+        </h2>
+        <div class="w-12 text-right">
+          <button id="logout-button" class="cursor-pointer">
+            <span class="material-symbols-outlined">logout</span>
+          </button>
+        </div>
+      </header>
 
-            <section class="card">
-                <div class="grafico-header">
-                    <h3>Desempenho de Vendas no Mês</h3>
-                    <div class="chart-controls">
-                        <button id="btn-view-ambos" class="btn-toggle active">Ambos</button>
-                        <button id="btn-view-quantidade" class="btn-toggle">Quantidade</button>
-                        <button id="btn-view-valor" class="btn-toggle">Valor (R$)</button>
-                    </div>
-                </div>
-                <div style="position: relative; height: 350px; margin-top: 20px;">
-                    <canvas id="grafico-vendas-diarias"></canvas>
-                </div>
-            </section>
-        </main>
-    
+      <main class="p-4 pb-24">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="card">
+            <p class="card-title">Vendas Totais</p>
+            <p id="vendas-totais" class="card-value">R$ 0,00</p>
+          </div>
+          <div class="card">
+            <p class="card-title">Comissão (15%)</p>
+            <p id="comissao" class="card-value">R$ 0,00</p>
+          </div>
+          <div class="card col-span-2">
+            <p class="card-title">Ticket Médio</p>
+            <p id="ticket-medio" class="card-value">R$ 0,00</p>
+          </div>
+        </div>
+        <h3 class="text-lg font-bold pt-6 pb-2">Vendas por período</h3>
+        <div id="periodo-filters" class="flex gap-3 pb-3">
+          <button data-periodo="hoje" class="btn-periodo active">Hoje</button>
+          <button data-periodo="semana" class="btn-periodo">Esta Semana</button>
+          <button data-periodo="mes" class="btn-periodo">Este Mês</button>
+        </div>
+        <div class="p-4 bg-white rounded-xl shadow-sm">
+          <p class="text-base text-gray-600">
+            Vendas de <span id="periodo-label">Hoje</span>
+          </p>
+          <p id="vendas-periodo-total" class="text-3xl font-bold">R$ 0,00</p>
+          <div
+            id="sales-chart"
+            class="grid min-h-[180px] grid-flow-col gap-4 items-end justify-items-center pt-4"
+          ></div>
+        </div>
+
+        <div class="py-6">
+          <button
+            id="btn-abrir-modal-fechar"
+            class="w-full h-12 flex items-center justify-center rounded-xl bg-error text-white font-bold"
+          >
+            Fechar Período
+          </button>
+        </div>
+      </main>
+
+      <footer
+        class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around p-2"
+      >
+        <a href="/painel.html" class="nav-item active"
+          ><span class="material-symbols-outlined">dashboard</span
+          ><span class="text-xs">Painel</span></a
+        >
+        <a href="#" class="nav-item"
+          ><span class="material-symbols-outlined">receipt_long</span
+          ><span class="text-xs">Vendas</span></a
+        >
+        <a href="#" class="nav-item"
+          ><span class="material-symbols-outlined">groups</span
+          ><span class="text-xs">Clientes</span></a
+        >
+        <a href="#" class="nav-item"
+          ><span class="material-symbols-outlined">inventory_2</span
+          ><span class="text-xs">Produtos</span></a
+        >
+      </footer>
     </div>
 
-    <script src="js/auth.js"></script>
-    <script src="js/painel.js"></script>
-</body>
+    <div
+      id="modal-fechar-periodo"
+      class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden"
+    >
+      <div class="bg-white rounded-xl p-6 w-full max-w-sm">
+        <h3 class="text-xl font-bold mb-2">Confirmar Fechamento</h3>
+        <p class="text-gray-600 mb-4">
+          Para sua segurança, digite sua senha para confirmar o encerramento do
+          período de vendas atual.
+        </p>
+        <form id="form-fechar-periodo">
+          <div class="mb-4">
+            <label for="senha-confirmacao" class="font-medium mb-1 block"
+              >Sua Senha</label
+            >
+            <input
+              type="password"
+              id="senha-confirmacao"
+              class="w-full h-12 px-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
+              required
+            />
+          </div>
+          <div
+            id="modal-error-message"
+            class="text-red-600 text-sm mb-4 h-5"
+          ></div>
+          <div class="flex gap-4">
+            <button
+              type="button"
+              id="btn-cancelar-fechamento"
+              class="w-full h-12 rounded-lg bg-gray-200 font-bold"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="w-full h-12 rounded-lg bg-error text-white font-bold"
+            >
+              Confirmar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <style>
+      /* Estilos existentes */
+      .card {
+        padding: 1rem;
+        border-radius: 0.75rem;
+        background-color: #fff;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      }
+      .card-title {
+        font-size: 0.875rem;
+        color: #4b5563;
+      }
+      .card-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+      .btn-periodo {
+        padding: 0.25rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        background-color: #fff;
+        color: #4b5563;
+      }
+      .btn-periodo.active {
+        background-color: #2196f3;
+        color: #fff;
+      }
+      .nav-item {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+        width: 5rem;
+      }
+      .nav-item.active {
+        color: #2196f3;
+      }
+    </style>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/painel.js"></script>
+  </body>
 </html>

@@ -1,168 +1,78 @@
-checkAuth();
-
 document.addEventListener('DOMContentLoaded', () => {
-    // Elementos do DOM
-    const logoutBtn = document.getElementById('logout-btn');
-    const faturamentoMesEl = document.getElementById('faturamento-mes');
-    const novosClientesEl = document.getElementById('novos-clientes');
-    const btnViewAmbos = document.getElementById('btn-view-ambos');
-    const btnViewQuantidade = document.getElementById('btn-view-quantidade');
-    const btnViewValor = document.getElementById('btn-view-valor');
+    checkAuth();
 
-    // Variáveis de Estado
-    let vendasPorDiaData = [];
-    let faturamentoPorDiaData = [];
-    let graficoVendas = null;
+    // --- Elementos do DOM (existentes) ---
+    const welcomeMessage = document.getElementById('welcome-message');
+    const logoutButton = document.getElementById('logout-button');
+    const vendasTotaisEl = document.getElementById('vendas-totais');
+    const comissaoEl = document.getElementById('comissao');
+    const ticketMedioEl = document.getElementById('ticket-medio');
+    const vendasPeriodoTotalEl = document.getElementById('vendas-periodo-total');
+    const periodoLabelEl = document.getElementById('periodo-label');
+    const salesChartEl = document.getElementById('sales-chart');
+    const periodoFilters = document.getElementById('periodo-filters');
 
-    // Função para carregar as métricas
-    async function carregarMetricas() {
+    // --- NOVO: Elementos do Modal ---
+    const btnAbrirModal = document.getElementById('btn-abrir-modal-fechar');
+    const modal = document.getElementById('modal-fechar-periodo');
+    const formFecharPeriodo = document.getElementById('form-fechar-periodo');
+    const btnCancelarFechamento = document.getElementById('btn-cancelar-fechamento');
+    const modalErrorMessage = document.getElementById('modal-error-message');
+
+    // ... (funções formatCurrency, loadDashboardData, renderChart existentes) ...
+    const payload = getTokenPayload();
+    if(payload && payload.nome){welcomeMessage.textContent=`Olá, ${payload.nome.split(' ')[0]}!`}
+    const formatCurrency=(value)=>value.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+    async function loadDashboardData(periodo='hoje'){try{const response=await fetchWithAuth(`/api/dashboard/funcionario?periodo=${periodo}`);const data=await response.json();vendasTotaisEl.textContent=formatCurrency(data.vendasTotais);comissaoEl.textContent=formatCurrency(data.comissao);ticketMedioEl.textContent=formatCurrency(data.ticketMedio);vendasPeriodoTotalEl.textContent=formatCurrency(data.vendasTotais);const filterButton=periodoFilters.querySelector(`[data-periodo="${periodo}"]`);periodoLabelEl.textContent=filterButton.textContent;renderChart(data.vendasPorHora)}catch(error){console.error('Falha ao carregar dados do painel:',error)}}
+    function renderChart(data){salesChartEl.innerHTML='';const maxValue=Math.max(...data.map(item=>item.valor),1);data.forEach(item=>{const barHeight=(item.valor/maxValue)*100;const bar=`<div class="flex flex-col items-center gap-2 w-full h-full justify-end"><div class="bg-primary/30 w-full rounded-t-md" style="height: ${barHeight}%;"></div><p class="text-gray-500 text-xs font-bold">${item.hora}</p></div>`;salesChartEl.insertAdjacentHTML('beforeend',bar)})}
+
+    // --- Lógica para o Modal ---
+    btnAbrirModal.addEventListener('click', () => {
+        modal.classList.remove('hidden');
+        document.getElementById('senha-confirmacao').value = '';
+        modalErrorMessage.textContent = '';
+    });
+
+    btnCancelarFechamento.addEventListener('click', () => {
+        modal.classList.add('hidden');
+    });
+
+    formFecharPeriodo.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        modalErrorMessage.textContent = '';
+        const senha = document.getElementById('senha-confirmacao').value;
+
         try {
-            const response = await fetchWithAuth('/api/dashboard/metricas');
-            if (!response.ok) throw new Error('Erro ao buscar métricas.');
+            const response = await fetchWithAuth('/api/usuarios/fechar-periodo', {
+                method: 'POST',
+                body: JSON.stringify({ senha })
+            });
             const data = await response.json();
-            
-            const faturamentoNumerico = parseFloat(data.faturamentoMes);
-            faturamentoMesEl.textContent = `R$ ${faturamentoNumerico.toFixed(2).replace('.', ',')}`;
-            novosClientesEl.textContent = data.novosClientes;
-            
-            vendasPorDiaData = data.vendasPorDia;
-            faturamentoPorDiaData = data.faturamentoPorDia;
 
-            // Renderiza o gráfico com a visão padrão "Ambos"
-            renderizarGrafico('ambos');
-        } catch (error) {
-            console.error(error);
-            faturamentoMesEl.textContent = 'Erro';
-            novosClientesEl.textContent = 'Erro';
-        }
-    }
-
-    // Função para renderizar o gráfico
-    function renderizarGrafico(tipo) {
-        Chart.register(ChartDataLabels);
-        const ctx = document.getElementById('grafico-vendas-diarias').getContext('2d');
-
-        // Garante que temos todos os dias do mês com dados
-        const todosOsDias = [...new Set([...vendasPorDiaData.map(d => d.dia), ...faturamentoPorDiaData.map(d => d.dia)])].sort((a, b) => a - b);
-        const labels = todosOsDias.map(dia => `Dia ${dia}`);
-
-        const dataQuantidade = todosOsDias.map(dia => vendasPorDiaData.find(d => d.dia === dia)?.quantidade || 0);
-        const dataValor = todosOsDias.map(dia => faturamentoPorDiaData.find(d => d.dia === dia)?.total || 0);
-        
-        // Calcula o valor máximo de cada dado para dar uma folga no eixo
-        const maxQuantidade = Math.max(...dataQuantidade);
-        const maxValor = Math.max(...dataValor);
-
-        // Define os datasets (conjuntos de dados) para o gráfico
-        const datasets = [];
-        if (tipo === 'quantidade' || tipo === 'ambos') {
-            datasets.push({
-                type: 'bar',
-                label: 'Quantidade de Vendas',
-                data: dataQuantidade,
-                backgroundColor: 'rgba(52, 152, 219, 0.6)',
-                borderColor: 'rgba(52, 152, 219, 1)',
-                borderRadius: 5,
-                yAxisID: 'y', // Eixo Y da esquerda
-                order: 2 
-            });
-        }
-        if (tipo === 'valor' || tipo === 'ambos') {
-            datasets.push({
-                type: 'line',
-                label: 'Valor Total (R$)',
-                data: dataValor,
-                backgroundColor: 'rgba(46, 204, 113, 1)',
-                borderColor: 'rgba(46, 204, 113, 1)',
-                tension: 0.1,
-                fill: false,
-                yAxisID: 'y1', // Eixo Y da direita
-                order: 1
-            });
-        }
-        
-        if (graficoVendas) {
-            graficoVendas.destroy();
-        }
-
-        graficoVendas = new Chart(ctx, {
-            type: 'bar',
-            data: { labels, datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false, // Importante para preencher a div de altura fixa
-                scales: {
-                    y: { // Eixo Y da Esquerda (Quantidade)
-                        display: (tipo === 'quantidade' || tipo === 'ambos'),
-                        position: 'left',
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 },
-                        suggestedMax: maxQuantidade * 1.2 // Adiciona 20% de espaço no topo
-                    },
-                    y1: { // Eixo Y da Direita (Valor R$)
-                        display: (tipo === 'valor' || tipo === 'ambos'),
-                        position: 'right',
-                        beginAtZero: true,
-                        grid: { drawOnChartArea: false },
-                        ticks: {
-                            callback: function(value) {
-                                if (value >= 1000) return 'R$' + value / 1000 + 'k';
-                                return 'R$' + value;
-                            }
-                        },
-                        suggestedMax: maxValor * 1.2 // Adiciona 20% de espaço no topo
-                    }
-                },
-                plugins: {
-                    legend: { display: tipo === 'ambos' },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: function(context) {
-                                const isValor = context.dataset.type === 'line';
-                                const val = context.parsed.y;
-                                if (isValor) return `Valor: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)}`;
-                                return `Vendas: ${val}`;
-                            }
-                        }
-                    },
-                    datalabels: {
-                        display: tipo !== 'ambos',
-                        anchor: 'end',
-                        align: 'end',
-                        color: '#555',
-                        font: { weight: 'bold' },
-                        formatter: function(value, context) {
-                            const isValor = context.dataset.type === 'line';
-                            if (isValor && value >= 1000) return 'R$' + (value / 1000).toFixed(1).replace('.',',') + 'k';
-                            if (isValor) return 'R$' + value;
-                            return value;
-                        }
-                    }
-                }
+            if (!response.ok) {
+                throw new Error(data.message);
             }
-        });
-    }
 
-    // Event Listeners para os botões
-    btnViewAmbos.addEventListener('click', () => {
-        document.querySelectorAll('.btn-toggle').forEach(btn => btn.classList.remove('active'));
-        btnViewAmbos.classList.add('active');
-        renderizarGrafico('ambos');
-    });
-    btnViewQuantidade.addEventListener('click', () => {
-        document.querySelectorAll('.btn-toggle').forEach(btn => btn.classList.remove('active'));
-        btnViewQuantidade.classList.add('active');
-        renderizarGrafico('quantidade');
-    });
-    btnViewValor.addEventListener('click', () => {
-        document.querySelectorAll('.btn-toggle').forEach(btn => btn.classList.remove('active'));
-        btnViewValor.classList.add('active');
-        renderizarGrafico('valor');
-    });
-    logoutBtn.addEventListener('click', logout);
+            alert('Período fechado com sucesso!');
+            modal.classList.add('hidden');
+            loadDashboardData('hoje'); // Recarrega os dados do painel
 
-    // Inicializa a página
-    carregarMetricas();
+        } catch (error) {
+            modalErrorMessage.textContent = error.message;
+        }
+    });
+
+    // --- Event Listeners existentes ---
+    periodoFilters.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            periodoFilters.querySelectorAll('.btn-periodo').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            loadDashboardData(e.target.dataset.periodo);
+        }
+    });
+
+    logoutButton.addEventListener('click', logout);
+
+    // Carga inicial
+    loadDashboardData('hoje');
 });

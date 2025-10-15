@@ -1,70 +1,42 @@
-const API_URL = '';
-
-function checkAuth() {
+function checkAuth(role) {
     const token = localStorage.getItem('authToken');
-    if (!token && !window.location.pathname.endsWith('login.html')) {
-        window.location.href = 'login.html';
+    if (!token) {
+        window.location.href = '/login.html';
+        return;
+    }
+    // Opcional: verifica se o usuário tem a 'role' necessária para a página
+    if (role) {
+        const payload = getTokenPayload();
+        if (!payload || payload.role !== role) {
+            alert('Acesso negado.');
+            logout();
+        }
     }
 }
-
 function logout() {
     localStorage.removeItem('authToken');
-    window.location.href = 'login.html';
+    window.location.href = '/login.html';
 }
-
-async function fetchWithAuth(endpoint, options = {}) {
+function getTokenPayload() {
     const token = localStorage.getItem('authToken');
-    const headers = { ...options.headers };
-
+    if (!token) return null;
+    try {
+        const payload = token.split('.')[1];
+        return JSON.parse(atob(payload));
+    } catch (e) {
+        logout();
+        return null;
+    }
+}
+async function fetchWithAuth(url, options = {}) {
+    const token = localStorage.getItem('authToken');
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
-
-    if (!(options.body instanceof FormData)) {
-        headers['Content-Type'] = 'application/json';
-    }
-
-    const response = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
-    
-    if (response.status === 401) {
+    const response = await fetch(url, { ...options, headers });
+    if (response.status === 401 || response.status === 403) {
         logout();
-        throw new Error('Sessão expirada. Faça login novamente.');
     }
-    
     return response;
 }
-
-// --- LÓGICA DE RESPONSIVIDADE INTEGRADA ---
-
-(function() {
-    // Função que executa toda a lógica de responsividade
-    function setupResponsiveFeatures() {
-        // Se a tela for maior que 767px (desktop), não faz nada.
-        if (window.innerWidth > 767) {
-            return;
-        }
-
-        // 1. Injeta a tag <link> para o mobile.css no <head>
-        const mobileCssLink = document.createElement('link');
-        mobileCssLink.rel = 'stylesheet';
-        mobileCssLink.href = 'css/mobile.css';
-        document.head.appendChild(mobileCssLink);
-
-        // 2. Cria e injeta o botão do menu (apenas se houver uma sidebar na página)
-        const sidebar = document.querySelector('.sidebar');
-        if (sidebar) {
-            const menuToggle = document.createElement('button');
-            menuToggle.innerHTML = '&#9776;'; // Ícone de hambúrguer
-            menuToggle.className = 'menu-toggle';
-            document.body.appendChild(menuToggle);
-
-            // 3. Adiciona a funcionalidade de clique ao botão
-            menuToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('active');
-            });
-        }
-    }
-
-    // Executa a função assim que o DOM estiver pronto
-    document.addEventListener('DOMContentLoaded', setupResponsiveFeatures);
-})();

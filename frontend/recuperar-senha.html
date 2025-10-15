@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Recuperar Senha</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <main class="flex flex-col justify-center px-4 py-8 min-h-screen">
+        <div class="w-full max-w-md mx-auto">
+            <div class="text-center mb-8">
+                <span class="material-symbols-outlined text-blue-600" style="font-size: 48px;">lock_reset</span>
+            </div>
+            <h1 class="text-3xl font-bold text-center pb-3">Esqueceu sua senha?</h1>
+            <p class="text-gray-600 text-center pb-8">Insira seu e-mail de cadastro e enviaremos um código de 6 dígitos para você.</p>
+            <form id="form-recuperar">
+                <div class="relative mb-4">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">mail</span>
+                    <input id="email" class="w-full h-14 pl-10 pr-4 rounded-lg border border-gray-300 bg-white" placeholder="seuemail@empresa.com" type="email" required/>
+                </div>
+                <button type="submit" class="w-full h-12 rounded-lg bg-blue-600 text-white font-bold">Enviar Código</button>
+            </form>
+            <div id="feedback-message" class="text-center mt-4 h-5"></div>
+            <div class="text-center mt-6">
+                <a class="text-sm text-gray-500 hover:text-blue-600" href="/login.html">Lembrou a senha? Voltar para o login</a>
+            </div>
+        </div>
+    </main>
+    <script src="/js/recuperar-senha.js"></script>
+</body>
+</html>
