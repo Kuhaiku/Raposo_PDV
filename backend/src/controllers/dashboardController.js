@@ -1,53 +1,51 @@
 const pool = require('../config/database');
 
-exports.obterMetricas = async (req, res) => {
-    const empresa_id = req.empresaId; // Obtém o ID da empresa do token de autenticação
+exports.getFuncionarioDashboardData = async (req, res) => {
+    // O usuarioId é extraído do token de autenticação pelo middleware
+    const { usuarioId } = req;
+    const { periodo = 'hoje' } = req.query; // Filtro de período: 'hoje', 'semana', 'mes'
+
     try {
-        // 1. Novos clientes no mês (últimos 30 dias)
-        const [novosClientesResult] = await pool.query(
-            "SELECT COUNT(id) AS novosClientes FROM clientes WHERE criado_em >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND empresa_id = ?",
-            [empresa_id]
-        );
+        let dateFilter = '';
+        if (periodo === 'hoje') {
+            dateFilter = 'AND DATE(data_venda) = CURDATE()';
+        } else if (periodo === 'semana') {
+            dateFilter = 'AND YEARWEEK(data_venda, 1) = YEARWEEK(CURDATE(), 1)';
+        } else if (periodo === 'mes') {
+            dateFilter = 'AND MONTH(data_venda) = MONTH(CURDATE()) AND YEAR(data_venda) = YEAR(CURDATE())';
+        }
 
-        // 2. Total de faturamento no mês atual
-        const [faturamentoMesResult] = await pool.query(
-            "SELECT IFNULL(SUM(valor_total), 0) AS faturamentoMes FROM vendas WHERE MONTH(data_venda) = MONTH(NOW()) AND YEAR(data_venda) = YEAR(NOW()) AND empresa_id = ?",
-            [empresa_id]
-        );
-
-        // 3. Gráfico de QUANTIDADE de vendas diárias no mês atual
-        const [vendasPorDiaResult] = await pool.query(`
-            SELECT 
-                DAY(data_venda) AS dia, 
-                COUNT(id) AS quantidade
+        const query = `
+            SELECT
+                IFNULL(SUM(valor_total), 0) AS totalVendas,
+                COUNT(id) AS numeroVendas,
+                IFNULL(AVG(valor_total), 0) AS ticketMedio
             FROM vendas
-            WHERE MONTH(data_venda) = MONTH(NOW()) AND YEAR(data_venda) = YEAR(NOW()) AND empresa_id = ?
-            GROUP BY DAY(data_venda)
-            ORDER BY dia ASC
-        `, [empresa_id]);
+            WHERE usuario_id = ? ${dateFilter}
+        `;
 
-        // 4. NOVO: Gráfico de VALOR (R$) faturado por dia no mês atual
-        const [faturamentoPorDiaResult] = await pool.query(`
-            SELECT 
-                DAY(data_venda) AS dia, 
-                SUM(valor_total) AS total
-            FROM vendas
-            WHERE MONTH(data_venda) = MONTH(NOW()) AND YEAR(data_venda) = YEAR(NOW()) AND empresa_id = ?
-            GROUP BY DAY(data_venda)
-            ORDER BY dia ASC
-        `, [empresa_id]);
+        const [rows] = await pool.query(query, [usuarioId]);
+        const data = rows[0];
+        
+        // Simulação de dados do gráfico por hora
+        const vendasPorHora = [
+            { hora: '08h', valor: Math.random() * 50 },
+            { hora: '10h', valor: Math.random() * 100 },
+            { hora: '12h', valor: Math.random() * 150 },
+            { hora: '14h', valor: Math.random() * 120 },
+            { hora: '16h', valor: Math.random() * 80 },
+            { hora: '18h', valor: Math.random() * 30 },
+        ];
 
-        // Monta o objeto final com todos os dados
-        const metricas = {
-            novosClientes: novosClientesResult[0].novosClientes || 0,
-            faturamentoMes: faturamentoMesResult[0].faturamentoMes,
-            vendasPorDia: vendasPorDiaResult,
-            faturamentoPorDia: faturamentoPorDiaResult
-        };
+        res.status(200).json({
+            vendasTotais: parseFloat(data.totalVendas),
+            comissao: parseFloat(data.totalVendas) * 0.15, // Exemplo comissão de 15%
+            ticketMedio: parseFloat(data.ticketMedio),
+            vendasPorHora: vendasPorHora
+        });
 
-        res.status(200).json(metricas);
     } catch (error) {
-        console.error("Erro no dashboardController:", error);
-        res.status(500).json({ message: 'Erro ao buscar métricas do dashboard.' });
+        console.error('Erro ao buscar dados do dashboard do funcionário:', error);
+        res.status(500).json({ message: 'Erro no servidor.' });
     }
 };
